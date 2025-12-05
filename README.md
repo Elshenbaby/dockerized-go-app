@@ -1,91 +1,27 @@
-# Dockerized Go App
+# Go Chat Broadcast
 
-Simple Go HTTP app that returns a greeting. This repository contains the Go source, a Dockerfile, and instructions to build, run, and push the image to Docker Hub.
+A real-time TCP-based chat server and client implementation in Go.
 
-## What is included
+## Overview
 
-- `main.go` — minimal HTTP server listening on port 8080
-- `go.mod` — module file
-- `Dockerfile` — multi-stage build (build in `golang:1.20-alpine`, produce minimal final image)
+This project demonstrates concurrent server architecture using Go goroutines, channels, and Mutex synchronization for a shared client list.
 
-## Quick local build & run (PowerShell)
+## Features
 
-1. Build the Go binary (optional — Docker will also build it):
+- **User Join/Leave Notifications**: When a client connects, all other clients are notified with "User [ID] joined". When they disconnect, others see "User [ID] left".
+- **Message Broadcasting**: When a client sends a message, it is broadcast to all other clients (no self-echo).
+- **Concurrency**: Uses goroutines for concurrent client handling, channels for message passing, and Mutex for protecting shared state.
 
-```powershell
-cd "C:\Users\Msi\Desktop\task 2"
-go build -o dockerized-app .
-# or simply: go run main.go
-```
+## Architecture
 
-2. Build the Docker image (replace `yourusername`):
+- **`server.go`** — TCP server that listens on port 9000, assigns unique client IDs, manages concurrent connections, and broadcasts messages.
+- **`client.go`** — Client that connects to the server, prints incoming messages, and sends stdin input to the server.
+- **`go.mod`** — Go module file.
 
-```powershell
-docker build -t yourusername/dockerized-go-app:latest .
-```
+## How It Works
 
-3. Run the container locally:
-
-```powershell
-docker run --rm -p 8080:8080 yourusername/dockerized-go-app:latest
-```
-
-4. Test from another PowerShell window or browser:
-
-```powershell
-curl http://localhost:8080/
-# expected output: Hello from Dockerized Go app!
-```
-
-## Publish to Docker Hub
-
-1. Create a repository on Docker Hub named `dockerized-go-app` under your Docker Hub username (https://hub.docker.com/).
-
-2. Tag and push the image:
-
-```powershell
-# login
-docker login
-
-# tag if needed (image already tagged in build step above works)
-docker tag yourusername/dockerized-go-app:latest yourusername/dockerized-go-app:latest
-
-docker push yourusername/dockerized-go-app:latest
-```
-
-3. After push, the public URL will be: `https://hub.docker.com/r/yourusername/dockerized-go-app`
-
-Replace `yourusername` with your Docker Hub username and update the link below.
-
-Docker Hub image link (replace with your actual image link):
-
-https://hub.docker.com/r/yourusername/dockerized-go-app
-
-## Push project to GitHub
-
-1. Initialize git and push to GitHub (create repo on GitHub first):
-
-```powershell
-cd "C:\Users\Msi\Desktop\task 2"
-git init
-git add .
-git commit -m "Add Dockerized Go app"
-# create repo on GitHub via website or gh CLI, then add remote and push
-# example using gh CLI:
-# gh repo create yourusername/dockerized-go-app --public --source=. --push
-
-# or using remote url:
-# git remote add origin https://github.com/yourusername/dockerized-go-app.git
-# git branch -M main
-git push -u origin main
-```
-
-## Submission
-
-- Push the code to GitHub and ensure your `README.md` contains the Docker Hub link.
-- Submit the GitHub repository URL for the assignment.
-
-## Notes
-
-- If you want to use a smaller base image than `scratch` for easier debugging, change final image to `alpine` and copy necessary files.
-- If your app needs environment variables, set them with `docker run -e NAME=value ...`.
+1. The server accepts connections from multiple clients, assigning each a unique integer ID.
+2. When a client connects, the server broadcasts a join notification to all other clients.
+3. Client messages are read and broadcast to all other connected clients (excluding the sender).
+4. Each client has a dedicated goroutine for writing outgoing messages via a buffered channel.
+5. The shared client map is protected by a Mutex to ensure thread-safe access.
